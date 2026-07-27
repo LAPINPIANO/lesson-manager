@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎹 レッスン管理</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Zen+Maru+Gothic:wght@400;700&display=swap');
+:root{
+  --pink:#FF8FAB;--pink-light:#FFD6E0;--pink-soft:#FFF0F5;
+  --yellow:#FFD166;--yellow-light:#FFF3CC;
+  --mint:#06D6A0;--mint-light:#CCFFF0;
+  --sky:#74B3CE;--purple:#C77DFF;--coral:#FF6B6B;
+  --green:#4CAF50;--green-light:#E8F5E9;
+  --bg:#F8F9FF;--text:#2D2D3D;--text-soft:#8888AA;
+  --shadow:0 4px 20px rgba(100,100,200,0.10);--radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Zen Maru Gothic',sans-serif;background:var(--bg);min-height:100vh;}
+.screen{display:none;}.screen.active{display:block;}
+.app-header{background:white;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(100,100,200,0.08);position:sticky;top:0;z-index:100;}
+.app-header h1{font-size:16px;font-weight:900;color:var(--purple);font-family:'Nunito',sans-serif;}
+.main-wrap{padding-bottom:88px;}
+.content{padding:14px;max-width:600px;margin:0 auto;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;padding:7px 10px 18px;display:flex;gap:5px;box-shadow:0 -4px 20px rgba(100,100,200,0.1);z-index:50;}
+.nav-tab{flex:1;background:none;border:none;border-radius:11px;padding:7px 3px;cursor:pointer;font-family:'Zen Maru Gothic',sans-serif;font-size:9px;color:var(--text-soft);display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .2s;}
+.nav-tab .ni{font-size:20px;}
+.nav-tab.active{background:var(--pink-soft);color:var(--pink);}
+
+/* CARDS */
+.card{background:white;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+
+/* BUTTONS */
+.btn{border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:700;font-family:'Zen Maru Gothic',sans-serif;cursor:pointer;transition:all .2s;}
+.btn-pink{background:var(--pink);color:white;}
+.btn-pink:hover{opacity:.85;}
+.btn-purple{background:var(--purple);color:white;}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:8px;}
+.btn-outline{background:white;border:2px solid #E0E0F0;color:var(--text-soft);}
+
+/* STUDENT LIST */
+.student-item{background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:10px;border-left:4px solid var(--purple);}
+.student-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.student-name{font-size:15px;font-weight:700;color:var(--text);}
+.student-meta{font-size:11px;color:var(--text-soft);margin-top:2px;}
+.student-actions{display:flex;gap:6px;}
+.fee-badge{background:var(--yellow-light);color:#B07800;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;}
+
+/* LESSON LOG */
+.lesson-entry{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F0F0F8;}
+.lesson-date{font-size:13px;font-weight:700;color:var(--text);min-width:60px;}
+.lesson-type{border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;}
+.type-normal{background:var(--mint-light);color:#007A5E;}
+.type-makeup{background:var(--yellow-light);color:#B07800;}
+.type-absent{background:#FFE5E5;color:#C00000;}
+.lesson-note{font-size:11px;color:var(--text-soft);flex:1;}
+
+/* MONTH VIEW */
+.month-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:none;}
+.month-tabs::-webkit-scrollbar{display:none;}
+.month-tab{flex-shrink:0;background:white;border:2px solid #E0E0F0;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--text-soft);cursor:pointer;transition:all .2s;}
+.month-tab.active{background:var(--purple);border-color:var(--purple);color:white;}
+
+/* ANNUAL VIEW TABLE */
+.annual-table-wrap{overflow-x:auto;}
+.annual-table{border-collapse:collapse;width:100%;font-size:11px;}
+.annual-table th,.annual-table td{border:1px solid #E0E0F0;padding:6px 4px;text-align:center;white-space:nowrap;}
+.annual-table th{background:#F0F0FF;color:var(--text);font-weight:700;}
+.annual-table td.student-cell{text-align:left;padding:6px 8px;font-weight:700;background:#FAFAFF;position:sticky;left:0;min-width:80px;}
+.cell-done{background:#E8F5E9;color:#2E7D32;}
+.cell-absent{background:#FFEBEE;color:#C62828;}
+.cell-paid{background:var(--yellow-light);}
+.cell-unpaid{background:#FFE5E5;color:#C00000;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(40,40,80,.5);z-index:150;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay.show{display:flex;}
+.modal-box{background:white;border-radius:var(--radius);padding:24px 20px;width:92%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(40,40,80,.2);}
+.modal-title{font-size:16px;font-weight:900;color:var(--text);margin-bottom:16px;font-family:'Nunito',sans-serif;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;font-weight:700;color:var(--text-soft);margin-bottom:5px;display:block;}
+.form-input{width:100%;border:2px solid #E0E0F0;border-radius:10px;padding:10px 12px;font-size:14px;font-family:'Zen Maru Gothic',sans-serif;outline:none;transition:border .2s;}
+.form-input:focus{border-color:var(--purple);}
+.form-row{display:flex;gap:10px;}
+.form-row .form-group{flex:1;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;}
+.modal-actions .btn{flex:1;}
+
+/* FEE STATUS */
+.fee-status-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0F0F8;}
+.fee-status-name{font-size:13px;font-weight:700;color:var(--text);}
+.fee-status-amount{font-size:12px;color:var(--text-soft);}
+.fee-toggle{display:flex;gap:6px;}
+
+/* SUMMARY STATS */
+.stats-row{display:flex;gap:10px;margin-bottom:12px;}
+.stat-card{flex:1;background:white;border-radius:14px;padding:12px;text-align:center;box-shadow:var(--shadow);}
+.stat-num{font-size:24px;font-weight:900;font-family:'Nunito',sans-serif;color:var(--purple);}
+.stat-label{font-size:10px;color:var(--text-soft);}
+
+.toast{position:fixed;bottom:93px;left:50%;transform:translateX(-50%) translateY(14px);background:#2D2D3D;color:white;padding:9px 20px;border-radius:20px;font-size:12px;font-weight:700;font-family:'Zen Maru Gothic',sans-serif;opacity:0;transition:all .3s;z-index:300;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.empty-msg{text-align:center;padding:30px 0;color:var(--text-soft);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- 生徒一覧 -->
+<div class="screen active" id="screen-students">
+  <div class="app-header">
+    <h1>🎹 レッスン管理</h1>
+    <button class="btn btn-pink btn-sm" onclick="openAddStudent()">＋ 生徒追加</button>
+  </div>
+  <div class="main-wrap"><div class="content">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">生徒数</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-monthly">¥0</div><div class="stat-label">月謝合計</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-unpaid">0</div><div class="stat-label">未収</div></div>
+    </div>
+    <div id="student-list"><div class="empty-msg">生徒を追加してね！</div></div>
+  </div></div>
+  <div class="bottom-nav">
+    <button class="nav-tab active" onclick="showScreen('students')"><span class="ni">👥</span>生徒一覧</button>
+    <button class="nav-tab" onclick="showScreen('monthly')"><span class="ni">📅</span>月別記録</button>
+    <button class="nav-tab" onclick="showScreen('annual')"><span class="ni">📊</span>年間表</button>
+    <button class="nav-tab" onclick="showScreen('fees')"><span class="ni">💴</span>月謝管理</button>
+  </div>
+</div>
+
+<!-- 月別記録 -->
+<div class="screen" id="screen-monthly">
+  <div class="app-header">
+    <h1>📅 月別レッスン記録</h1>
+    <div style="width:80px"></div>
+  </div>
+  <div class="main-wrap"><div class="content">
+    <div class="month-tabs" id="month-tabs"></div>
+    <div id="monthly-content"></div>
+  </div></div>
+  <div class="bottom-nav">
+    <button class="nav-tab" onclick="showScreen('students')"><span class="ni">👥</span>生徒一覧</button>
+    <button class="nav-tab active" onclick="showScreen('monthly')"><span class="ni">📅</span>月別記録</button>
+    <button class="nav-tab" onclick="showScreen('annual')"><span class="ni">📊</span>年間表</button>
+    <button class="nav-tab" onclick="showScreen('fees')"><span class="ni">💴</span>月謝管理</button>
+  </div>
+</div>
+
+<!-- 年間表 -->
+<div class="screen" id="screen-annual">
+  <div class="app-header">
+    <h1>📊 年間出席表</h1>
+    <div style="width:80px"></div>
+  </div>
+  <div class="main-wrap"><div class="content">
+    <div class="card">
+      <div class="card-title">
+        <span id="annual-year-label">2025年度</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="changeYear(-1)">◀</button>
+          <button class="btn btn-outline btn-sm" onclick="changeYear(1)">▶</button>
+        </div>
+      </div>
+      <div class="annual-table-wrap"><table class="annual-table" id="annual-table"></table></div>
+    </div>
+  </div></div>
+  <div class="bottom-nav">
+    <button class="nav-tab" onclick="showScreen('students')"><span class="ni">👥</span>生徒一覧</button>
+    <button class="nav-tab" onclick="showScreen('monthly')"><span class="ni">📅</span>月別記録</button>
+    <button class="nav-tab active" onclick="showScreen('annual')"><span class="ni">📊</span>年間表</button>
+    <button class="nav-tab" onclick="showScreen('fees')"><span class="ni">💴</span>月謝管理</button>
+  </div>
+</div>
+
+<!-- 月謝管理 -->
+<div class="screen" id="screen-fees">
+  <div class="app-header">
+    <h1>💴 月謝管理</h1>
+    <div style="width:80px"></div>
+  </div>
+  <div class="main-wrap"><div class="content">
+    <div class="month-tabs" id="fee-month-tabs"></div>
+    <div id="fees-content"></div>
+  </div></div>
+  <div class="bottom-nav">
+    <button class="nav-tab" onclick="showScreen('students')"><span class="ni">👥</span>生徒一覧</button>
+    <button class="nav-tab" onclick="showScreen('monthly')"><span class="ni">📅</span>月別記録</button>
+    <button class="nav-tab" onclick="showScreen('annual')"><span class="ni">📊</span>年間表</button>
+    <button class="nav-tab active" onclick="showScreen('fees')"><span class="ni">💴</span>月謝管理</button>
+  </div>
+</div>
+
+<!-- 生徒追加/編集モーダル -->
+<div class="modal-overlay" id="student-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="student-modal-title">生徒を追加</div>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input type="text" class="form-input" id="s-name" placeholder="例：田中みくさん">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">月謝（円）</label>
+        <input type="number" class="form-input" id="s-fee" placeholder="7000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">月の回数</label>
+        <input type="number" class="form-input" id="s-times" placeholder="3">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">レッスン時間（分）</label>
+      <input type="number" class="form-input" id="s-duration" placeholder="30">
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <input type="text" class="form-input" id="s-note" placeholder="例：月曜15時〜">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('student-modal')">キャンセル</button>
+      <button class="btn btn-purple" onclick="saveStudent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- レッスン記録モーダル -->
+<div class="modal-overlay" id="lesson-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="lesson-modal-title">レッスンを記録</div>
+    <div class="form-group">
+      <label class="form-label">日付</label>
+      <input type="date" class="form-input" id="l-date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">種別</label>
+      <select class="form-input" id="l-type">
+        <option value="normal">通常レッスン</option>
+        <option value="makeup">振替レッスン</option>
+        <option value="absent">欠席</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ（任意）</label>
+      <input type="text" class="form-input" id="l-note" placeholder="例：発表会練習">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('lesson-modal')">キャンセル</button>
+      <button class="btn btn-pink" onclick="saveLesson()">記録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 生徒詳細モーダル -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="detail-name">詳細</div>
+    <div id="detail-content"></div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-pink" style="width:100%;margin-bottom:8px;" onclick="openAddLesson()">＋ レッスンを記録</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="editStudent()">✏️ 編集</button>
+        <button class="btn btn-outline" style="flex:1;color:var(--coral);" onclick="deleteStudent()">🗑️ 削除</button>
+        <button class="btn btn-outline" style="flex:1;" onclick="closeModal('detail-modal')">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+const MONTHS = ['4月','5月','6月','7月','8月','9月','10月','11月','12月','1月','2月','3月'];
+const MONTH_NUMS = [4,5,6,7,8,9,10,11,12,1,2,3];
+
+function getData(){
+  const d=localStorage.getItem('lesson_mgr_v1');
+  return d?JSON.parse(d):{students:[],lessons:{}};
+}
+function save(d){localStorage.setItem('lesson_mgr_v1',JSON.stringify(d));}
+
+let D=getData();
+let editingStudentId=null;
+let detailStudentId=null;
+let lessonStudentId=null;
+let currentMonthIdx=getCurrentMonthIdx();
+let currentFeeMonthIdx=getCurrentMonthIdx();
+let currentYear=getCurrentYear();
+
+function getCurrentMonthIdx(){
+  const m=new Date().getMonth()+1;
+  const idx=MONTH_NUMS.indexOf(m);
+  return idx>=0?idx:0;
+}
+function getCurrentYear(){
+  const now=new Date();
+  return now.getMonth()>=3?now.getFullYear():now.getFullYear()-1;
+}
+
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+
+function formatFee(n){return '¥'+Number(n).toLocaleString();}
+
+// ===== SCREENS =====
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const navMap={students:0,monthly:1,annual:2,fees:3};
+  document.querySelectorAll('.nav-tab')[navMap[name]]?.classList.add('active');
+  if(name==='students') renderStudents();
+  if(name==='monthly') renderMonthly();
+  if(name==='annual') renderAnnual();
+  if(name==='fees') renderFees();
+}
+
+// ===== STUDENTS =====
+function renderStudents(){
+  D=getData();
+  const list=document.getElementById('student-list');
+  const total=D.students.length;
+  const monthly=D.students.reduce((s,st)=>s+(parseInt(st.fee)||0),0);
+  const now=new Date();
+  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const unpaid=D.students.filter(st=>!(D.lessons[st.id]?.fees?.[ym])).length;
+
+  document.getElementById('stat-total').textContent=total+'人';
+  document.getElementById('stat-monthly').textContent=formatFee(monthly);
+  document.getElementById('stat-unpaid').textContent=unpaid+'人';
+
+  if(total===0){list.innerHTML='<div class="empty-msg">右上の「＋生徒追加」から生徒を登録してね！</div>';return;}
+  list.innerHTML='';
+  D.students.forEach(st=>{
+    const lessons=D.lessons[st.id]?.records||[];
+    const thisMonthLessons=lessons.filter(l=>{
+      const d=new Date(l.date);
+      return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+    });
+    const paid=!!(D.lessons[st.id]?.fees?.[ym]);
+    const item=document.createElement('div');
+    item.className='student-item';
+    item.innerHTML=`
+      <div class="student-header">
+        <div>
+          <div class="student-name">${st.name}</div>
+          <div class="student-meta">${st.note||''} ／ 月${st.times||'-'}回 ／ ${st.duration||'-'}分</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="fee-badge">${formatFee(st.fee||0)}</span>
+          <span style="font-size:10px;color:${paid?'#2E7D32':'#C62828'};font-weight:700;">${paid?'✅ 受領済':'⚠️ 未受領'}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;color:var(--text-soft);">今月 ${thisMonthLessons.filter(l=>l.type!=='absent').length}回レッスン済</span>
+        <div class="student-actions">
+          <button class="btn btn-purple btn-sm" onclick="openDetail('${st.id}')">詳細・記録</button>
+        </div>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+// ===== STUDENT MODAL =====
+function openAddStudent(){
+  editingStudentId=null;
+  document.getElementById('student-modal-title').textContent='生徒を追加';
+  ['s-name','s-fee','s-times','s-duration','s-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('student-modal').classList.add('show');
+}
+
+function editStudent(){
+  const st=D.students.find(s=>s.id===detailStudentId);
+  if(!st) return;
+  editingStudentId=st.id;
+  document.getElementById('student-modal-title').textContent='生徒情報を編集';
+  document.getElementById('s-name').value=st.name||'';
+  document.getElementById('s-fee').value=st.fee||'';
+  document.getElementById('s-times').value=st.times||'';
+  document.getElementById('s-duration').value=st.duration||'';
+  document.getElementById('s-note').value=st.note||'';
+  closeModal('detail-modal');
+  document.getElementById('student-modal').classList.add('show');
+}
+
+function saveStudent(){
+  const name=document.getElementById('s-name').value.trim();
+  if(!name){showToast('名前を入力してね');return;}
+  const student={
+    id:editingStudentId||genId(),
+    name,
+    fee:document.getElementById('s-fee').value,
+    times:document.getElementById('s-times').value,
+    duration:document.getElementById('s-duration').value,
+    note:document.getElementById('s-note').value,
+  };
+  if(editingStudentId){
+    const idx=D.students.findIndex(s=>s.id===editingStudentId);
+    if(idx>=0) D.students[idx]=student;
+  } else {
+    D.students.push(student);
+    if(!D.lessons[student.id]) D.lessons[student.id]={records:[],fees:{}};
+  }
+  save(D);
+  closeModal('student-modal');
+  renderStudents();
+  showToast(editingStudentId?'更新しました！':'生徒を追加しました！');
+}
+
+function deleteStudent(){
+  if(!confirm('本当に削除しますか？')) return;
+  D.students=D.students.filter(s=>s.id!==detailStudentId);
+  delete D.lessons[detailStudentId];
+  save(D);
+  closeModal('detail-modal');
+  renderStudents();
+  showToast('削除しました');
+}
+
+// ===== DETAIL MODAL =====
+function openDetail(id){
+  detailStudentId=id;
+  const st=D.students.find(s=>s.id===id);
+  if(!st) return;
+  document.getElementById('detail-name').textContent=`📋 ${st.name}`;
+  const lessons=(D.lessons[id]?.records||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  const typeLabel={normal:'通常',makeup:'振替',absent:'欠席'};
+  const typeClass={normal:'type-normal',makeup:'type-makeup',absent:'type-absent'};
+  const content=document.getElementById('detail-content');
+  content.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <span class="fee-badge">${formatFee(st.fee||0)}/月</span>
+      <span style="background:#F0F0FF;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--purple);">月${st.times||'-'}回</span>
+      <span style="background:#F0F0FF;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--purple);">${st.duration||'-'}分</span>
+      ${st.note?`<span style="background:#F5F5F5;border-radius:8px;padding:3px 10px;font-size:11px;color:var(--text-soft);">${st.note}</span>`:''}
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-soft);margin-bottom:8px;">最近のレッスン記録</div>
+    ${lessons.length===0?'<div style="font-size:12px;color:var(--text-soft);padding:10px 0;">まだ記録がありません</div>':
+    lessons.map(l=>`
+      <div class="lesson-entry">
+        <span class="lesson-date">${l.date.slice(5).replace('-','/')}</span>
+        <span class="lesson-type ${typeClass[l.type]}">${typeLabel[l.type]}</span>
+        <span class="lesson-note">${l.note||''}</span>
+        <button onclick="deleteLesson('${id}','${l.id}')" style="background:none;border:none;color:#CCC;cursor:pointer;font-size:14px;">✕</button>
+      </div>`).join('')}`;
+  document.getElementById('detail-modal').classList.add('show');
+}
+
+// ===== LESSON MODAL =====
+function openAddLesson(){
+  lessonStudentId=detailStudentId;
+  document.getElementById('l-date').value=todayStr();
+  document.getElementById('l-type').value='normal';
+  document.getElementById('l-note').value='';
+  closeModal('detail-modal');
+  document.getElementById('lesson-modal').classList.add('show');
+  const st=D.students.find(s=>s.id===lessonStudentId);
+  document.getElementById('lesson-modal-title').textContent=`${st?.name||''}のレッスンを記録`;
+}
+
+function saveLesson(){
+  const date=document.getElementById('l-date').value;
+  const type=document.getElementById('l-type').value;
+  const note=document.getElementById('l-note').value;
+  if(!date){showToast('日付を選んでね');return;}
+  if(!D.lessons[lessonStudentId]) D.lessons[lessonStudentId]={records:[],fees:{}};
+  D.lessons[lessonStudentId].records.push({id:genId(),date,type,note});
+  save(D);
+  closeModal('lesson-modal');
+  showToast('記録しました！');
+  renderStudents();
+}
+
+function deleteLesson(studentId,lessonId){
+  if(!D.lessons[studentId]) return;
+  D.lessons[studentId].records=D.lessons[studentId].records.filter(l=>l.id!==lessonId);
+  save(D);
+  openDetail(studentId);
+  showToast('削除しました');
+}
+
+// ===== MONTHLY =====
+function renderMonthly(){
+  D=getData();
+  const tabs=document.getElementById('month-tabs');
+  tabs.innerHTML='';
+  MONTHS.forEach((m,i)=>{
+    const btn=document.createElement('button');
+    btn.className='month-tab'+(i===currentMonthIdx?' active':'');
+    btn.textContent=m;
+    btn.onclick=()=>{currentMonthIdx=i;renderMonthly();};
+    tabs.appendChild(btn);
+  });
+
+  const moNum=MONTH_NUMS[currentMonthIdx];
+  const yr=moNum>=4?currentYear:currentYear+1;
+  const content=document.getElementById('monthly-content');
+
+  if(D.students.length===0){content.innerHTML='<div class="empty-msg">生徒を登録してね</div>';return;}
+
+  content.innerHTML='';
+  D.students.forEach(st=>{
+    const records=(D.lessons[st.id]?.records||[]).filter(l=>{
+      const d=new Date(l.date);
+      return d.getFullYear()===yr&&d.getMonth()+1===moNum;
+    }).sort((a,b)=>a.date.localeCompare(b.date));
+
+    const normalCount=records.filter(l=>l.type==='normal').length;
+    const makeupCount=records.filter(l=>l.type==='makeup').length;
+    const absentCount=records.filter(l=>l.type==='absent').length;
+    const typeLabel={normal:'通常',makeup:'振替',absent:'欠席'};
+    const typeClass={normal:'type-normal',makeup:'type-makeup',absent:'type-absent'};
+
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
+      <div class="card-title">
+        <span>${st.name}</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <span style="font-size:10px;color:var(--text-soft);">通常${normalCount} 振替${makeupCount} 欠席${absentCount}</span>
+          <button class="btn btn-pink btn-sm" onclick="lessonStudentId='${st.id}';document.getElementById('l-date').value=todayStr();document.getElementById('l-type').value='normal';document.getElementById('l-note').value='';document.getElementById('lesson-modal-title').textContent='${st.name}のレッスンを記録';document.getElementById('lesson-modal').classList.add('show');">＋記録</button>
+        </div>
+      </div>
+      ${records.length===0?'<div style="font-size:12px;color:var(--text-soft);">この月のレッスン記録はまだありません</div>':
+      records.map(l=>`
+        <div class="lesson-entry">
+          <span class="lesson-date">${l.date.slice(5).replace('-','/')}</span>
+          <span class="lesson-type ${typeClass[l.type]}">${typeLabel[l.type]}</span>
+          <span class="lesson-note">${l.note||''}</span>
+          <button onclick="deleteLesson('${st.id}','${l.id}');renderMonthly();" style="background:none;border:none;color:#CCC;cursor:pointer;">✕</button>
+        </div>`).join('')}`;
+    content.appendChild(card);
+  });
+}
+
+// ===== ANNUAL =====
+function renderAnnual(){
+  D=getData();
+  document.getElementById('annual-year-label').textContent=`${currentYear}年度（${currentYear}年4月〜${currentYear+1}年3月）`;
+  const table=document.getElementById('annual-table');
+  if(D.students.length===0){table.innerHTML='<tr><td style="padding:20px;color:#AAA;">生徒を登録してね</td></tr>';return;}
+
+  let html=`<thead><tr><th>生徒名</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
+  D.students.forEach(st=>{
+    html+=`<tr><td class="student-cell">${st.name}</td>`;
+    MONTH_NUMS.forEach(moNum=>{
+      const yr=moNum>=4?currentYear:currentYear+1;
+      const records=(D.lessons[st.id]?.records||[]).filter(l=>{
+        const d=new Date(l.date);
+        return d.getFullYear()===yr&&d.getMonth()+1===moNum;
+      });
+      const normal=records.filter(l=>l.type==='normal').length;
+      const absent=records.filter(l=>l.type==='absent').length;
+      const makeup=records.filter(l=>l.type==='makeup').length;
+      const total=normal+makeup;
+      const ym=`${yr}-${String(moNum).padStart(2,'0')}`;
+      const paid=!!(D.lessons[st.id]?.fees?.[ym]);
+      let cellClass='',cellText='';
+      if(total>0){cellClass='cell-done';cellText=`${total}回`;}
+      if(absent>0) cellText+=(cellText?'/':'')+`休${absent}`;
+      html+=`<td class="${cellClass}" style="${paid?'border-bottom:3px solid #FFD166;':''}">${cellText||'-'}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  table.innerHTML=html;
+}
+
+function changeYear(n){currentYear+=n;renderAnnual();}
+
+// ===== FEES =====
+function renderFees(){
+  D=getData();
+  const tabs=document.getElementById('fee-month-tabs');
+  tabs.innerHTML='';
+  MONTHS.forEach((m,i)=>{
+    const btn=document.createElement('button');
+    btn.className='month-tab'+(i===currentFeeMonthIdx?' active':'');
+    btn.textContent=m;
+    btn.onclick=()=>{currentFeeMonthIdx=i;renderFees();};
+    tabs.appendChild(btn);
+  });
+
+  const moNum=MONTH_NUMS[currentFeeMonthIdx];
+  const yr=moNum>=4?currentYear:currentYear+1;
+  const ym=`${yr}-${String(moNum).padStart(2,'0')}`;
+  const content=document.getElementById('fees-content');
+
+  if(D.students.length===0){content.innerHTML='<div class="empty-msg">生徒を登録してね</div>';return;}
+
+  const totalFee=D.students.reduce((s,st)=>s+(parseInt(st.fee)||0),0);
+  const paidCount=D.students.filter(st=>D.lessons[st.id]?.fees?.[ym]).length;
+  const paidTotal=D.students.filter(st=>D.lessons[st.id]?.fees?.[ym]).reduce((s,st)=>s+(parseInt(st.fee)||0),0);
+
+  content.innerHTML=`
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;text-align:center;"><div style="font-size:20px;font-weight:900;color:var(--green);font-family:'Nunito',sans-serif;">${formatFee(paidTotal)}</div><div style="font-size:10px;color:var(--text-soft);">受領済合計</div></div>
+        <div style="flex:1;text-align:center;"><div style="font-size:20px;font-weight:900;color:var(--coral);font-family:'Nunito',sans-serif;">${formatFee(totalFee-paidTotal)}</div><div style="font-size:10px;color:var(--text-soft);">未収合計</div></div>
+        <div style="flex:1;text-align:center;"><div style="font-size:20px;font-weight:900;color:var(--purple);font-family:'Nunito',sans-serif;">${paidCount}/${D.students.length}</div><div style="font-size:10px;color:var(--text-soft);">受領済人数</div></div>
+      </div>
+    </div>`;
+
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML='<div class="card-title">月謝受領状況</div>';
+  D.students.forEach(st=>{
+    const paid=!!(D.lessons[st.id]?.fees?.[ym]);
+    const row=document.createElement('div');
+    row.className='fee-status-row';
+    row.innerHTML=`
+      <div>
+        <div class="fee-status-name">${st.name}</div>
+        <div class="fee-status-amount">${formatFee(st.fee||0)}</div>
+      </div>
+      <div class="fee-toggle">
+        <button class="btn btn-sm ${paid?'btn-outline':'btn-pink'}" onclick="toggleFee('${st.id}','${ym}',${!paid})">${paid?'✅ 受領済':'未収'}</button>
+      </div>`;
+    card.appendChild(row);
+  });
+  content.appendChild(card);
+}
+
+function toggleFee(studentId,ym,paid){
+  if(!D.lessons[studentId]) D.lessons[studentId]={records:[],fees:{}};
+  if(paid) D.lessons[studentId].fees[ym]=true;
+  else delete D.lessons[studentId].fees[ym];
+  save(D);
+  renderFees();
+  renderStudents();
+  showToast(paid?'受領済にしました！':'未収に戻しました');
+}
+
+// ===== MODAL =====
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+// ===== TOAST =====
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ===== INIT =====
+window.onload=()=>{renderStudents();};
+</script>
+</body>
+</html>
