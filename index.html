@@ -593,14 +593,33 @@ function renderMonthly(){
 
     const card=document.createElement('div');
     card.className='card';
+    const memoKey=`memo_${st.id}_${ymStr}`;
+    const savedMemo=D.lessons[st.id]?.memos?.[ymStr]||'';
     card.innerHTML=`
       <div class="card-title" style="margin-bottom:4px;">
         <span>${st.name}</span>
         <span style="font-size:11px;color:var(--text-soft);">通常${normalCount} 振替${makeupCount} 欠席${absentCount}</span>
       </div>
-      ${calHtml}`;
+      ${calHtml}
+      <div style="margin-top:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-soft);margin-bottom:4px;">📝 この月のメモ</div>
+        <input type="text" value="${savedMemo}" placeholder="例：45分で消化、発表会練習など" 
+          style="width:100%;border:2px solid #E0E0F0;border-radius:10px;padding:8px 12px;font-size:12px;font-family:'Zen Maru Gothic',sans-serif;outline:none;"
+          onchange="saveMonthlyMemo('${st.id}','${ymStr}',this.value)"
+          onfocus="this.style.borderColor='var(--purple)'"
+          onblur="this.style.borderColor='#E0E0F0'">
+      </div>`;
     content.appendChild(card);
   });
+}
+
+// メモ保存
+function saveMonthlyMemo(studentId, ymStr, text){
+  if(!D.lessons[studentId]) D.lessons[studentId]={records:[],fees:{},memos:{}};
+  if(!D.lessons[studentId].memos) D.lessons[studentId].memos={};
+  D.lessons[studentId].memos[ymStr]=text;
+  save(D);
+  showToast('📝 メモを保存したよ！');
 }
 
 // 日付タップで種別をローテーション
@@ -644,8 +663,11 @@ function renderAnnual(){
       const absent=records.filter(l=>l.type==='absent').length;
       const makeup=records.filter(l=>l.type==='makeup').length;
       const total=normal+makeup;
+      const ymStr=`${yr}-${String(moNum).padStart(2,'0')}`;
+      const memo=D.lessons[st.id]?.memos?.[ymStr]||'';
       let txt=total>0?`${total}回`:'';
       if(absent>0) txt+=(txt?'/':'')+`休${absent}`;
+      if(memo) txt+=`<br><span style="font-size:9px;color:#888;">${memo}</span>`;
       html+=`<td class="${total>0?'cell-done':''}">${txt||'-'}</td>`;
     });
     html+='</tr>';
